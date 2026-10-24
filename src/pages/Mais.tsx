@@ -1,20 +1,35 @@
 import { useRef, useState } from "react";
-import { useStore, normalize } from "../lib/store";
+import { useStore, normalize, type SyncStatus } from "../lib/store";
+import { useAuth } from "../lib/auth";
 import { exportBackup } from "../lib/backup";
 import { netSalary } from "../lib/taxes";
 import { money, monthKey } from "../lib/format";
-import { Button, Card, Field, MoneyInput, SectionTitle, inputClass } from "../components/ui";
+import { Button, Card, Field, MoneyInput, SectionTitle, Sheet, inputClass } from "../components/ui";
+import Support from "../components/Support";
+import { WorkTypePicker } from "./Auth";
+import type { WorkType } from "../types";
+
+export const syncLabel: Record<SyncStatus, string> = {
+  loading: "⏳ Carregando da nuvem...",
+  synced: "☁️ Salvo na nuvem",
+  saving: "⏳ Salvando...",
+  offline: "📴 Sem internet: salvo no aparelho",
+};
 
 export default function Mais() {
-  const { data, updateSettings, saveTransaction, replaceAll, resetAll } = useStore();
-  const [name, setName] = useState(data.settings.name);
+  const { data, status, updateSettings, saveTransaction, replaceAll, resetAll } = useStore();
+  const { profile, updateProfile, signOut } = useAuth();
+  const [name, setName] = useState(profile?.name ?? "");
+  const [workType, setWorkType] = useState<WorkType>(profile?.work_type ?? "clt");
   const [gross, setGross] = useState(data.settings.grossSalary);
   const [deps, setDeps] = useState(data.settings.dependents);
   const [payday, setPayday] = useState(data.settings.payday);
   const [message, setMessage] = useState("");
+  const [support, setSupport] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const net = netSalary(gross, deps).net;
+  const isPJ = workType === "pj";
+  const net = isPJ ? gross : netSalary(gross, deps).net;
   const hasSalaryTx = data.transactions.some((t) => t.category === "salario" && t.recurrence === "monthly" && !t.endMonth);
 
   function flash(text: string) {
@@ -22,12 +37,16 @@ export default function Mais() {
     setTimeout(() => setMessage(""), 3000);
   }
 
-  function saveProfile(createSalary: boolean) {
-    updateSettings({ name: name.trim(), grossSalary: gross, dependents: deps, payday });
+  async function saveProfile(createSalary: boolean) {
+    updateSettings({ grossSalary: gross, dependents: deps, payday });
+    if (name.trim() !== profile?.name || workType !== profile?.work_type) {
+      const err = await updateProfile({ name: name.trim(), work_type: workType });
+      if (err) return flash("Não foi possível salvar o perfil. Verifique a internet.");
+    }
     if (createSalary && net > 0) {
       saveTransaction({
         type: "income",
-        description: "Salário",
+        description: isPJ ? "Pagamento PJ" : "Salário",
         amount: net,
         category: "salario",
         date: `${monthKey()}-${String(Math.min(28, Math.max(1, payday))).padStart(2, "0")}`,
@@ -53,24 +72,47 @@ export default function Mais() {
       <h1 className="mb-4 text-2xl font-bold">Ajustes</h1>
       {message && <div className="mb-3 rounded-xl bg-emerald-500/15 p-3 text-center text-emerald-300">{message}</div>}
 
+      <Card className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{profile?.name || "Minha conta"}</p>
+          <p className="truncate text-sm text-slate-400">{profile?.email}</p>
+          <p className="text-xs text-slate-500">{syncLabel[status]}</p>
+        </div>
+        <Button variant="secondary" className="shrink-0 py-2" onClick={() => { if (confirm("Sair da conta?")) signOut(); }}>Sair</Button>
+      </Card>
+
       <SectionTitle>Meu perfil e salário</SectionTitle>
       <Card className="space-y-3">
         <Field label="Seu nome"><input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} /></Field>
-        <Field label="Salário bruto (da carteira)"><MoneyInput value={gross} onChange={setGross} /></Field>
+        <div>
+          <span className="mb-1.5 block text-sm text-slate-400">Como você trabalha?</span>
+          <WorkTypePicker value={workType} onChange={setWorkType} />
+        </div>
+        <Field label={isPJ ? "Quanto você recebe por mês (PJ)" : "Salário bruto (da carteira)"}><MoneyInput value={gross} onChange={setGross} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Dependentes"><input className={inputClass} type="number" min={0} value={deps} onChange={(e) => setDeps(Math.max(0, Number(e.target.value) || 0))} /></Field>
+          {!isPJ && <Field label="Dependentes"><input className={inputClass} type="number" min={0} value={deps} onChange={(e) => setDeps(Math.max(0, Number(e.target.value) || 0))} /></Field>}
           <Field label="Dia do pagamento"><input className={inputClass} type="number" min={1} max={28} value={payday} onChange={(e) => setPayday(Math.min(28, Math.max(1, Number(e.target.value) || 1)))} /></Field>
         </div>
-        {gross > 0 && <p className="text-sm text-slate-400">Salário líquido estimado: <span className="font-semibold text-emerald-400">{money(net)}</span></p>}
+        {gross > 0 && (
+          <p className="text-sm text-slate-400">
+            {isPJ ? "Valor que entra (PJ, sem descontos): " : "Salário líquido estimado: "}
+            <span className="font-semibold text-emerald-400">{money(net)}</span>
+          </p>
+        )}
         <Button className="w-full" onClick={() => saveProfile(false)}>Salvar</Button>
         {!hasSalaryTx && gross > 0 && (
           <Button variant="secondary" className="w-full" onClick={() => saveProfile(true)}>Salvar e lançar salário todo mês</Button>
         )}
       </Card>
 
+      <SectionTitle>Ajuda</SectionTitle>
+      <Card>
+        <Button variant="secondary" className="w-full" onClick={() => setSupport(true)}>💬 Falar com o suporte</Button>
+      </Card>
+
       <SectionTitle>Backup dos dados</SectionTitle>
       <Card className="space-y-3">
-        <p className="text-sm text-slate-400">Seus dados ficam salvos só neste aparelho. Faça backup de vez em quando e guarde no Google Drive ou WhatsApp. Se trocar de celular, é só importar.</p>
+        <p className="text-sm text-slate-400">Seus dados ficam salvos na nuvem, na sua conta, e aparecem em qualquer aparelho em que você entrar. Se quiser, também pode guardar uma cópia em arquivo.</p>
         <Button variant="secondary" className="w-full" onClick={() => exportBackup(data).catch(() => alert("Não foi possível exportar o backup."))}>⬆️ Exportar backup</Button>
         <Button variant="secondary" className="w-full" onClick={() => fileRef.current?.click()}>⬇️ Importar backup</Button>
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = ""; }} />
@@ -78,12 +120,16 @@ export default function Mais() {
 
       <SectionTitle>Zona de perigo</SectionTitle>
       <Card>
-        <Button variant="danger" className="w-full" onClick={() => { if (confirm("Apagar TODOS os dados do app? Isso não pode ser desfeito.")) { resetAll(); flash("Dados apagados."); } }}>
+        <Button variant="danger" className="w-full" onClick={() => { if (confirm("Apagar TODOS os seus lançamentos e metas? Isso não pode ser desfeito.")) { resetAll(); flash("Dados apagados."); } }}>
           Apagar todos os dados
         </Button>
       </Card>
 
       <p className="mt-6 text-center text-xs text-slate-600">Minhas Contas · v{__APP_VERSION__}</p>
+
+      <Sheet open={support} onClose={() => setSupport(false)} title="Falar com o suporte">
+        {support && <Support />}
+      </Sheet>
     </div>
   );
 }

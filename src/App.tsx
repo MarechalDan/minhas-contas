@@ -9,22 +9,25 @@ import Lancamentos from "./pages/Lancamentos";
 import Calculos from "./pages/Calculos";
 import Metas from "./pages/Metas";
 import Mais from "./pages/Mais";
+import Admin from "./pages/Admin";
+import { useAuth } from "./lib/auth";
 import type { Occurrence, TxType } from "./types";
 
-type Page = "resumo" | "lancamentos" | "calculos" | "metas" | "mais";
-
-const NAV: { id: Page; icon: string; label: string }[] = [
-  { id: "resumo", icon: "📊", label: "Resumo" },
-  { id: "lancamentos", icon: "🧾", label: "Contas" },
-  { id: "calculos", icon: "🧮", label: "Férias/13º" },
-  { id: "metas", icon: "🎯", label: "Metas" },
-  { id: "mais", icon: "⚙️", label: "Ajustes" },
-];
+type Page = "resumo" | "lancamentos" | "calculos" | "metas" | "mais" | "admin";
 
 type Editor = { mode: "new"; type: TxType } | { mode: "edit"; id: string; month: string } | null;
 
 export default function App() {
   const { data } = useStore();
+  const { profile } = useAuth();
+  const nav: { id: Page; icon: string; label: string }[] = [
+    { id: "resumo", icon: "📊", label: "Resumo" },
+    { id: "lancamentos", icon: "🧾", label: "Contas" },
+    profile?.work_type === "pj" ? { id: "calculos", icon: "💼", label: "Reserva PJ" } : { id: "calculos", icon: "🧮", label: "Férias/13º" },
+    { id: "metas", icon: "🎯", label: "Metas" },
+    { id: "mais", icon: "⚙️", label: "Ajustes" },
+    ...(profile?.role === "admin" ? [{ id: "admin" as Page, icon: "🛡️", label: "Admin" }] : []),
+  ];
   const [page, setPage] = useState<Page>("resumo");
   const [month, setMonth] = useState(monthKey());
   const [editor, setEditor] = useState<Editor>(null);
@@ -42,6 +45,7 @@ export default function App() {
         {page === "calculos" && <Calculos />}
         {page === "metas" && <Metas />}
         {page === "mais" && <Mais />}
+        {page === "admin" && profile?.role === "admin" && <Admin />}
       </main>
 
       {(page === "resumo" || page === "lancamentos") && (
@@ -56,8 +60,8 @@ export default function App() {
       )}
 
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-slate-950/95 backdrop-blur">
-        <div className="mx-auto grid max-w-md grid-cols-5">
-          {NAV.map((n) => (
+        <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}>
+          {nav.map((n) => (
             <button key={n.id} onClick={() => setPage(n.id)} className={`flex flex-col items-center gap-0.5 py-2.5 text-[11px] ${page === n.id ? "text-emerald-400" : "text-slate-400"}`}>
               <span className={`text-xl ${page === n.id ? "" : "opacity-70 grayscale"}`}>{n.icon}</span>
               {n.label}

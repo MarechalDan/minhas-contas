@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useStore } from "../lib/store";
+import { useAuth } from "../lib/auth";
+import { syncLabel } from "./Mais";
 import { byCategory, lastMonths, occurrencesIn, summarize } from "../lib/ledger";
 import { getCategory } from "../lib/categories";
 import { money, monthLabel, todayISO } from "../lib/format";
@@ -17,7 +19,9 @@ interface Props {
 }
 
 export default function Resumo({ month, setMonth, openTx, newTx, goSettings }: Props) {
-  const { data, togglePaid } = useStore();
+  const { data, status, togglePaid } = useStore();
+  const { profile } = useAuth();
+  const firstName = profile?.name.split(" ")[0] ?? "";
   const occ = useMemo(() => occurrencesIn(data.transactions, month), [data.transactions, month]);
   const s = summarize(occ);
   const cats = byCategory(occ, "expense");
@@ -40,7 +44,10 @@ export default function Resumo({ month, setMonth, openTx, newTx, goSettings }: P
   return (
     <div>
       <header className="mb-4">
-        <p className="text-sm text-slate-400">Olá{data.settings.name ? `, ${data.settings.name}` : ""} 👋</p>
+        <div className="flex items-center justify-between gap-2 text-sm text-slate-400">
+          <span>Olá{firstName ? `, ${firstName}` : ""} 👋</span>
+          <span className="text-xs text-slate-500">{syncLabel[status]}</span>
+        </div>
         <h1 className="text-2xl font-bold">Resumo do mês</h1>
       </header>
 

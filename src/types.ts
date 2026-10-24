@@ -50,3 +50,28 @@ export interface Occurrence {
   installment?: { current: number; total: number };
   paid: boolean;
 }
+
+export type WorkType = "clt" | "pj";
+
+export interface Profile {
+  id: string;
+  email: string;
+  name: string;
+  work_type: WorkType;
+  role: "user" | "admin";
+  blocked: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+}
+
+export interface Ticket {
+  id: number;
+  user_id: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: "aberto" | "respondido" | "fechado";
+  reply: string | null;
+  created_at: string;
+  replied_at: string | null;
+}

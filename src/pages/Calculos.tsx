@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useStore } from "../lib/store";
+import { useAuth } from "../lib/auth";
+import { money } from "../lib/format";
 import { DEPENDENT_DEDUCTION, TAX_YEAR, netSalary, thirteenth, vacation } from "../lib/taxes";
 import { monthKey, todayISO } from "../lib/format";
 import { Button, Card, Field, MoneyInput, Row, inputClass } from "../components/ui";
@@ -151,8 +153,52 @@ function DecimoTab() {
   );
 }
 
+function ReservaPJ() {
+  const { data, saveGoal } = useStore();
+  const [income, setIncome] = useState(data.settings.grossSalary);
+  const [added, setAdded] = useState(false);
+  const vacation = (income / 12) * (4 / 3);
+  const thirteenthPart = income / 12;
+  const monthly = vacation + thirteenthPart;
+  const year = Number(monthKey().slice(0, 4));
+
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-bold">Reserva PJ</h1>
+      <Card>
+        <p className="text-sm text-slate-400">
+          Como PJ, o valor que você recebe não tem desconto de INSS ou IR na folha. Mas também não existe férias nem 13º pagos pela empresa. Para ter esse dinheiro no fim do ano, o ideal é guardar um pouco todo mês.
+        </p>
+        <div className="mt-4">
+          <Field label="Quanto você recebe por mês"><MoneyInput value={income} onChange={setIncome} /></Field>
+        </div>
+        <div className="mt-4">
+          <Row label="Para suas férias (+1/3)" value={vacation} />
+          <Row label={'Para o seu "13º"'} value={thirteenthPart} />
+          <Row label="Guarde por mês" value={monthly} strong />
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Em 12 meses você junta {money(monthly * 12)}, o mesmo que um CLT receberia de férias + 13º (sem descontos).</p>
+        <Button
+          className="mt-4 w-full"
+          disabled={income <= 0}
+          onClick={() => {
+            saveGoal({ name: "Férias e 13º (PJ)", emoji: "🏖️", target: Math.round(monthly * 12 * 100) / 100, saved: 0, deadline: `${year}-12-20` });
+            setAdded(true);
+          }}
+        >
+          Criar meta de reserva
+        </Button>
+        <Added show={added} />
+        <p className="mt-4 text-xs text-slate-500">Lembre de separar também o imposto da sua empresa (DAS/Simples), se for o seu caso.</p>
+      </Card>
+    </div>
+  );
+}
+
 export default function Calculos() {
+  const { profile } = useAuth();
   const [tab, setTab] = useState<Tab>("ferias");
+  if (profile?.work_type === "pj") return <ReservaPJ />;
   return (
     <div>
       <h1 className="mb-4 text-2xl font-bold">Calculadoras</h1>

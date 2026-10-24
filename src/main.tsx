@@ -2,8 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { Capacitor } from "@capacitor/core";
 import { StatusBar, Style } from "@capacitor/status-bar";
-import { StoreProvider } from "./lib/store";
-import App from "./App";
+import { AuthProvider } from "./lib/auth";
+import Gate from "./Gate";
 import "./index.css";
 
 if (Capacitor.isNativePlatform()) {
@@ -13,8 +13,8 @@ if (Capacitor.isNativePlatform()) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <AuthProvider>
+      <Gate />
+    </AuthProvider>
   </StrictMode>,
 );
