@@ -58,28 +58,27 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::Segredos KEYSTORE_BASE64/KEYSTORE_PASSWORD não configurados. APK não será publicado."
+            exit 0
           fi
-      - name: Gerar APK
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Gerar APK assinado
+        if: env.KEYSTORE_PATH != ''
         working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_PATH" ]; then
-            ./gradlew assembleRelease --no-daemon
-            cp app/build/outputs/apk/release/app-release.apk ../MinhasContas.apk
-          else
-            ./gradlew assembleDebug --no-daemon
-            cp app/build/outputs/apk/debug/app-debug.apk ../MinhasContas.apk
-          fi
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../MinhasContas.apk
       - uses: softprops/action-gh-release@v2
+        if: env.KEYSTORE_PATH != ''
         with:
           tag_name: v${{ env.VERSION_NAME }}
           name: Minhas Contas ${{ env.VERSION_NAME }}
           make_latest: true
           files: MinhasContas.apk
           body: |
-            Baixe o arquivo **MinhasContas.apk** abaixo pelo celular e instale.
+            Baixe o arquivo **MinhasContas.apk** abaixo pelo celular e instale por cima da versão anterior (seus dados continuam).
             Se o Android avisar sobre "fontes desconhecidas", permita a instalação para o navegador/arquivos.
