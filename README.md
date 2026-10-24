@@ -38,3 +38,11 @@ cd android && ./gradlew assembleDebug
 Tecnologias: React, TypeScript, Vite, Tailwind CSS, Recharts, vite-plugin-pwa e Capacitor.
 
 Os cálculos de INSS/IR estão em `src/lib/taxes.ts`. Atualize as tabelas quando o governo mudar os valores.
+
+## Contas de usuário e banco de dados (Supabase)
+
+- Login e cadastro por email e senha. No cadastro a pessoa escolhe **CLT** (com INSS, IR, férias e 13º) ou **PJ** (sem descontos; a aba vira "Reserva PJ").
+- Os dados de cada pessoa ficam na tabela `user_data` do Supabase e também no aparelho (funciona sem internet e sincroniza quando a conexão volta).
+- O email definido em `app_config.admin_email` vira admin ao se cadastrar e vê a aba **Admin**: usuários, CLT/PJ, último acesso, bloquear/desbloquear, chamados de suporte e WhatsApp do suporte.
+- Regras de segurança (RLS) em `supabase/schema.sql`: cada usuário só acessa os próprios dados; o admin não vê valores financeiros.
+- `.env.production` guarda só a URL e a chave **pública** do Supabase (protegidas pelas regras de segurança).

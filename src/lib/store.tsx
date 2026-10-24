@@ -53,7 +53,7 @@ function useStoreValue(userId: string) {
   const [data, setData] = useState<AppData>(() => safeNormalize(readJSON(cacheKey)) ?? emptyData);
   const [status, setStatus] = useState<SyncStatus>("loading");
   const ready = useRef(false);
-  const skipNextPush = useRef(true);
+  const skipNextPush = useRef(false);
   const latest = useRef(data);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 

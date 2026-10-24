@@ -73,7 +73,7 @@ for each row execute function public.handle_new_user();
 create or replace function public.protect_profile() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if not is_admin() then
+  if auth.uid() is not null and not is_admin() then
     new.role := old.role;
     new.blocked := old.blocked;
     new.email := old.email;

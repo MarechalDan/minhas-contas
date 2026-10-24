@@ -27,3 +27,4 @@ dist-ssr
 *.jks
 *.keystore
 .env*
+!.env.production
