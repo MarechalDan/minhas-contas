@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useStore } from "../lib/store";
 import { formatDate, money, monthDiff, monthKey } from "../lib/format";
 import { Button, Card, Empty, Field, MoneyInput, Progress, Sheet, inputClass } from "../components/ui";
+import { validateAndSanitize, goalSchema, sanitizeInput } from "../lib/validation";
 import type { Goal } from "../types";
 
 const EMOJIS = ["🎯", "🏖️", "🚗", "🏠", "💍", "🎓", "📱", "🛟", "✈️", "🎮"];
@@ -19,14 +20,23 @@ function GoalForm({ initial, onDone }: { initial?: Goal; onDone: () => void }) {
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!name.trim() || target <= 0) return;
-        saveGoal({ id: initial?.id, name: name.trim(), emoji, target, saved, deadline: deadline || undefined });
+        const validation = validateAndSanitize(goalSchema, {
+          name: sanitizeInput(name),
+          target,
+          saved,
+          deadline: deadline || undefined,
+        });
+        if (!validation.success) {
+          alert(validation.error);
+          return;
+        }
+        saveGoal({ id: initial?.id, name: validation.data.name, emoji, target: validation.data.target, saved: validation.data.saved, deadline: validation.data.deadline });
         onDone();
       }}
     >
       <div className="flex flex-wrap gap-2">
         {EMOJIS.map((e) => (
-          <button type="button" key={e} onClick={() => setEmoji(e)} className={`h-11 w-11 rounded-xl text-xl ${emoji === e ? "bg-emerald-500/20 ring-2 ring-emerald-500" : "bg-slate-950"}`}>{e}</button>
+          <button type="button" key={e} onClick={() => setEmoji(e)} className={`h-10 w-10 rounded-lg text-lg transition-colors ${emoji === e ? "bg-emerald-600/20 ring-2 ring-emerald-600" : "bg-slate-950/50 hover:bg-slate-800"}`}>{e}</button>
         ))}
       </div>
       <Field label="Nome da meta"><input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Reserva de emergência, Viagem" /></Field>
@@ -66,7 +76,7 @@ export default function Metas() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Metas</h1>
+        <h1 className="text-xl font-bold">Metas</h1>
         <Button onClick={() => setEditing("new")} className="py-2">+ Nova</Button>
       </div>
 

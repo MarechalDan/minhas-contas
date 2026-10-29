@@ -20,7 +20,7 @@ create table if not exists public.profiles (
 
 create table if not exists public.user_data (
   user_id uuid primary key references auth.users on delete cascade,
-  data jsonb not null,
+  data jsonb not null default '{"version":1,"transactions":[],"goals":[],"settings":{"name":"","grossSalary":0,"dependents":0,"payday":1,"reminderDays":3}}'::jsonb,
   updated_at timestamptz not null default now()
 );
 

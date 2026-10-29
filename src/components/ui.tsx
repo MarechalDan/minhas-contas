@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { addMonths, monthLabel, money, parseMoney } from "../lib/format";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-white/5 bg-slate-900 p-4 ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-slate-800 bg-slate-900/50 p-4 ${className}`}>{children}</div>;
 }
 
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
@@ -16,10 +16,10 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
 
 export function MonthPicker({ month, onChange }: { month: string; onChange: (m: string) => void }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-slate-900 p-1">
-      <button aria-label="Mês anterior" className="rounded-xl px-4 py-2 text-xl text-slate-300 active:bg-slate-800" onClick={() => onChange(addMonths(month, -1))}>‹</button>
-      <span className="font-semibold">{monthLabel(month)}</span>
-      <button aria-label="Próximo mês" className="rounded-xl px-4 py-2 text-xl text-slate-300 active:bg-slate-800" onClick={() => onChange(addMonths(month, 1))}>›</button>
+    <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/50 p-1">
+      <button aria-label="Mês anterior" className="rounded-lg px-4 py-2 text-lg text-slate-300 hover:bg-slate-800/50 active:bg-slate-800" onClick={() => onChange(addMonths(month, -1))}>‹</button>
+      <span className="font-semibold text-sm">{monthLabel(month)}</span>
+      <button aria-label="Próximo mês" className="rounded-lg px-4 py-2 text-lg text-slate-300 hover:bg-slate-800/50 active:bg-slate-800" onClick={() => onChange(addMonths(month, 1))}>›</button>
     </div>
   );
 }
@@ -35,7 +35,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 export const inputClass =
-  "w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-base text-slate-100 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30";
+  "w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-base text-slate-100 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 placeholder:text-slate-500";
 
 export function MoneyInput({ value, onChange, placeholder = "0,00", autoFocus }: { value: number; onChange: (v: number) => void; placeholder?: string; autoFocus?: boolean }) {
   const [text, setText] = useState(value ? value.toFixed(2).replace(".", ",") : "");
@@ -53,23 +53,52 @@ export function MoneyInput({ value, onChange, placeholder = "0,00", autoFocus }:
         placeholder={placeholder}
         autoFocus={autoFocus}
         onChange={(e) => {
-          setText(e.target.value);
-          onChange(parseMoney(e.target.value));
+          const newText = e.target.value;
+          // Aceita . e , - remove caracteres inválidos mantendo no máximo uma vírgula
+          const cleaned = newText.replace(/[^0-9.,]/g, "");
+          setText(cleaned);
+          onChange(parseMoney(cleaned));
+        }}
+        onBlur={() => {
+          // Formata para 2 casas decimais ao perder o foco
+          if (value > 0) setText(value.toFixed(2).replace(".", ","));
+          else setText("");
         }}
       />
     </div>
   );
 }
 
+export function NumberInput({ value, onChange, min, max, placeholder = "0", autoFocus }: { value: number; onChange: (v: number) => void; min?: number; max?: number; placeholder?: string; autoFocus?: boolean }) {
+  return (
+    <input
+      className={inputClass}
+      type="number"
+      inputMode="numeric"
+      value={value}
+      placeholder={placeholder}
+      autoFocus={autoFocus}
+      onChange={(e) => {
+        const num = Number(e.target.value);
+        if (Number.isFinite(num)) {
+          const clamped = min !== undefined ? Math.max(min, num) : num;
+          const final = max !== undefined ? Math.min(max, clamped) : clamped;
+          onChange(final);
+        }
+      }}
+    />
+  );
+}
+
 export function Button({ children, variant = "primary", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "danger" | "secondary" }) {
   const styles = {
-    primary: "bg-emerald-500 text-slate-950 active:bg-emerald-400",
-    secondary: "bg-slate-800 text-slate-100 active:bg-slate-700",
-    ghost: "text-slate-300 active:bg-slate-800",
-    danger: "bg-red-500/15 text-red-400 active:bg-red-500/25",
+    primary: "bg-emerald-600 text-white hover:bg-emerald-500 active:bg-emerald-700 shadow-sm",
+    secondary: "bg-slate-800 text-slate-100 hover:bg-slate-700 active:bg-slate-800/50",
+    ghost: "text-slate-300 hover:bg-slate-800/50 active:bg-slate-800",
+    danger: "bg-red-500/10 text-red-400 hover:bg-red-500/15 active:bg-red-500/20",
   }[variant];
   return (
-    <button className={`rounded-xl px-4 py-3 font-semibold transition disabled:opacity-40 ${styles} ${className}`} {...props}>
+    <button className={`rounded-lg px-4 py-2.5 font-medium transition disabled:opacity-50 disabled:hover:opacity-50 ${styles} ${className}`} {...props}>
       {children}
     </button>
   );

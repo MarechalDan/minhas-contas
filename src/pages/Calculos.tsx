@@ -4,7 +4,7 @@ import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
 import { DEPENDENT_DEDUCTION, TAX_YEAR, netSalary, thirteenth, vacation } from "../lib/taxes";
 import { monthKey, todayISO } from "../lib/format";
-import { Button, Card, Field, MoneyInput, Row, inputClass } from "../components/ui";
+import { Button, Card, Field, MoneyInput, NumberInput, Row, inputClass } from "../components/ui";
 
 type Tab = "salario" | "ferias" | "decimo";
 
@@ -29,7 +29,7 @@ function SalarioTab() {
     <Card>
       <div className="space-y-3">
         <Field label="Salário bruto"><MoneyInput value={gross} onChange={setGross} /></Field>
-        <Field label="Dependentes"><input className={inputClass} type="number" min={0} value={deps} onChange={(e) => setDeps(Math.max(0, Number(e.target.value) || 0))} /></Field>
+        <Field label="Dependentes"><NumberInput value={deps} onChange={setDeps} min={0} /></Field>
       </div>
       <div className="mt-4">
         <Row label="Salário bruto" value={r.gross} />
@@ -116,7 +116,7 @@ function DecimoTab() {
         <Field label="Salário bruto"><MoneyInput value={salary} onChange={setSalary} /></Field>
         <Field label="Média de horas extras/adicionais (opcional)"><MoneyInput value={extras} onChange={setExtras} /></Field>
         <Field label="Meses trabalhados no ano" hint="Conta o mês em que você trabalhou 15 dias ou mais.">
-          <input className={inputClass} type="number" min={1} max={12} value={months} onChange={(e) => setMonths(Math.min(12, Math.max(1, Number(e.target.value) || 1)))} />
+          <NumberInput value={months} onChange={setMonths} min={1} max={12} />
         </Field>
       </div>
       <div className="mt-4">
@@ -201,14 +201,14 @@ export default function Calculos() {
   if (profile?.work_type === "pj") return <ReservaPJ />;
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">Calculadoras</h1>
-      <div className="mb-4 grid grid-cols-3 gap-1 rounded-2xl bg-slate-900 p-1">
+      <h1 className="mb-4 text-xl font-bold">Calculadoras</h1>
+      <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-slate-900/50 p-1">
         {([
           ["salario", "💼 Salário"],
           ["ferias", "🏖️ Férias"],
           ["decimo", "🎁 13º"],
         ] as [Tab, string][]).map(([t, label]) => (
-          <button key={t} onClick={() => setTab(t)} className={`rounded-xl py-2 text-sm font-semibold ${tab === t ? "bg-emerald-500 text-slate-950" : "text-slate-300"}`}>
+          <button key={t} onClick={() => setTab(t)} className={`rounded-md py-2 text-sm font-medium transition-colors ${tab === t ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-300"}`}>
             {label}
           </button>
         ))}

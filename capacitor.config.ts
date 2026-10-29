@@ -5,7 +5,16 @@ const config: CapacitorConfig = {
   appName: "Minhas Contas",
   webDir: "dist",
   backgroundColor: "#020617",
-  android: { adjustMarginsForEdgeToEdge: "force" },
+  android: {
+    adjustMarginsForEdgeToEdge: "force",
+  },
+  ios: {
+    contentInset: "always",
+  },
+  server: {
+    androidScheme: "https",
+    cleartext: true,
+  },
 };
 
 export default config;

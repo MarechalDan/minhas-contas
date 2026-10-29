@@ -2,6 +2,7 @@ import { useState } from "react";
 import { monthKey, todayISO } from "./lib/format";
 import { occurrenceIn } from "./lib/ledger";
 import { useStore } from "./lib/store";
+import { useNotifications } from "./lib/notifications";
 import { Sheet } from "./components/ui";
 import TransactionForm from "./components/TransactionForm";
 import Resumo from "./pages/Resumo";
@@ -20,6 +21,7 @@ type Editor = { mode: "new"; type: TxType } | { mode: "edit"; id: string; month:
 export default function App() {
   const { data } = useStore();
   const { profile } = useAuth();
+  useNotifications(); // Inicia sistema de notificações
   const nav: { id: Page; icon: string; label: string }[] = [
     { id: "resumo", icon: "📊", label: "Resumo" },
     { id: "lancamentos", icon: "🧾", label: "Contas" },

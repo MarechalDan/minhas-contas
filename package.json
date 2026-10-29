@@ -13,14 +13,17 @@
     "@capacitor/android": "^7.6.9",
     "@capacitor/core": "^7.6.9",
     "@capacitor/filesystem": "^7.1.9",
+    "@capacitor/ios": "^7.6.10",
     "@capacitor/share": "^7.0.4",
     "@capacitor/status-bar": "^7.0.6",
     "@supabase/supabase-js": "^2.118.0",
     "@tailwindcss/vite": "^4.3.3",
+    "dompurify": "^3.4.17",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "recharts": "^2.15.4",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

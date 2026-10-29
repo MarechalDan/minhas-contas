@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useStore, normalize, type SyncStatus } from "../lib/store";
 import { useAuth } from "../lib/auth";
 import { exportBackup } from "../lib/backup";
 import { netSalary } from "../lib/taxes";
 import { money, monthKey } from "../lib/format";
-import { Button, Card, Field, MoneyInput, SectionTitle, Sheet, inputClass } from "../components/ui";
+import { Button, Card, Field, MoneyInput, NumberInput, SectionTitle, Sheet, inputClass } from "../components/ui";
 import Support from "../components/Support";
 import { WorkTypePicker } from "./Auth";
 import type { WorkType } from "../types";
@@ -24,9 +24,29 @@ export default function Mais() {
   const [gross, setGross] = useState(data.settings.grossSalary);
   const [deps, setDeps] = useState(data.settings.dependents);
   const [payday, setPayday] = useState(data.settings.payday);
+  const [reminderDays, setReminderDays] = useState(data.settings.reminderDays ?? 3);
   const [message, setMessage] = useState("");
   const [support, setSupport] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Solicitar permissão de notificação
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Sincronizar estados com dados salvos
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name);
+      setWorkType(profile.work_type);
+    }
+    setGross(data.settings.grossSalary);
+    setDeps(data.settings.dependents);
+    setPayday(data.settings.payday);
+    setReminderDays(data.settings.reminderDays ?? 3);
+  }, [profile, data.settings]);
 
   const isPJ = workType === "pj";
   const net = isPJ ? gross : netSalary(gross, deps).net;
@@ -38,22 +58,37 @@ export default function Mais() {
   }
 
   async function saveProfile(createSalary: boolean) {
-    updateSettings({ grossSalary: gross, dependents: deps, payday });
-    if (name.trim() !== profile?.name || workType !== profile?.work_type) {
-      const err = await updateProfile({ name: name.trim(), work_type: workType });
-      if (err) return flash("Não foi possível salvar o perfil. Verifique a internet.");
+    try {
+      // Atualizar configurações localmente
+      updateSettings({ grossSalary: gross, dependents: deps, payday, reminderDays });
+
+      // Atualizar perfil no Supabase se mudou
+      if (name.trim() !== profile?.name || workType !== profile?.work_type) {
+        const err = await updateProfile({ name: name.trim(), work_type: workType });
+        if (err) {
+          flash("Não foi possível salvar o perfil. Verifique a internet.");
+          return;
+        }
+      }
+
+      // Criar transação de salário se solicitado
+      if (createSalary && net > 0) {
+        saveTransaction({
+          type: "income",
+          description: isPJ ? "Pagamento PJ" : "Salário",
+          amount: net,
+          category: "salario",
+          date: `${monthKey()}-${String(Math.min(28, Math.max(1, payday))).padStart(2, "0")}`,
+          recurrence: "monthly",
+        });
+        flash("Salário mensal adicionado nas receitas!");
+      } else {
+        flash("Dados salvos com sucesso!");
+      }
+    } catch (e) {
+      flash("Erro ao salvar. Tente novamente.");
+      console.error(e);
     }
-    if (createSalary && net > 0) {
-      saveTransaction({
-        type: "income",
-        description: isPJ ? "Pagamento PJ" : "Salário",
-        amount: net,
-        category: "salario",
-        date: `${monthKey()}-${String(Math.min(28, Math.max(1, payday))).padStart(2, "0")}`,
-        recurrence: "monthly",
-      });
-      flash("Salário mensal adicionado nas receitas!");
-    } else flash("Dados salvos!");
   }
 
   async function onImport(file: File) {
@@ -69,8 +104,8 @@ export default function Mais() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">Ajustes</h1>
-      {message && <div className="mb-3 rounded-xl bg-emerald-500/15 p-3 text-center text-emerald-300">{message}</div>}
+      <h1 className="mb-4 text-xl font-bold">Ajustes</h1>
+      {message && <div className="mb-3 rounded-lg bg-emerald-600/15 p-3 text-center text-emerald-300">{message}</div>}
 
       <Card className="flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -78,7 +113,12 @@ export default function Mais() {
           <p className="truncate text-sm text-slate-400">{profile?.email}</p>
           <p className="text-xs text-slate-500">{syncLabel[status]}</p>
         </div>
-        <Button variant="secondary" className="shrink-0 py-2" onClick={() => { if (confirm("Sair da conta?")) signOut(); }}>Sair</Button>
+        <Button variant="secondary" className="shrink-0 py-2" onClick={async () => {
+          if (confirm("Sair da conta?")) {
+            await signOut();
+            window.location.reload();
+          }
+        }}>Sair</Button>
       </Card>
 
       <SectionTitle>Meu perfil e salário</SectionTitle>
@@ -90,9 +130,12 @@ export default function Mais() {
         </div>
         <Field label={isPJ ? "Quanto você recebe por mês (PJ)" : "Salário bruto (da carteira)"}><MoneyInput value={gross} onChange={setGross} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          {!isPJ && <Field label="Dependentes"><input className={inputClass} type="number" min={0} value={deps} onChange={(e) => setDeps(Math.max(0, Number(e.target.value) || 0))} /></Field>}
-          <Field label="Dia do pagamento"><input className={inputClass} type="number" min={1} max={28} value={payday} onChange={(e) => setPayday(Math.min(28, Math.max(1, Number(e.target.value) || 1)))} /></Field>
+          {!isPJ && <Field label="Dependentes"><NumberInput value={deps} onChange={setDeps} min={0} /></Field>}
+          <Field label="Dia do pagamento"><NumberInput value={payday} onChange={setPayday} min={1} max={28} /></Field>
         </div>
+        <Field label="Lembrete de contas (dias antes)" hint="Será notificado antes do vencimento das contas">
+          <NumberInput value={reminderDays} onChange={setReminderDays} min={1} max={7} />
+        </Field>
         {gross > 0 && (
           <p className="text-sm text-slate-400">
             {isPJ ? "Valor que entra (PJ, sem descontos): " : "Salário líquido estimado: "}

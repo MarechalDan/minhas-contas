@@ -9,4 +9,4 @@ export const supabase = createClient(url ?? "http://localhost", key ?? "missing"
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
 });
 
-export const SITE_URL = "https://marechaldan.github.io/minhas-contas/";
+export const SITE_URL = window.location.origin;

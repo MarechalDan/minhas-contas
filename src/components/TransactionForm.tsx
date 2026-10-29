@@ -3,7 +3,8 @@ import type { Recurrence, Transaction, TxType } from "../types";
 import { expenseCategories, guessCategory, incomeCategories } from "../lib/categories";
 import { useStore } from "../lib/store";
 import { todayISO } from "../lib/format";
-import { Button, Field, MoneyInput, inputClass } from "./ui";
+import { Button, Field, MoneyInput, NumberInput, inputClass } from "./ui";
+import { validateAndSanitize, transactionSchema, sanitizeInput } from "../lib/validation";
 
 interface Props {
   initial?: Transaction;
@@ -40,31 +41,48 @@ export default function TransactionForm({ initial, defaultType = "expense", defa
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) return;
+
+    const validation = validateAndSanitize(transactionSchema, {
+      description: sanitizeInput(description),
+      amount: perInstallment,
+      category,
+      date,
+      type,
+      recurrence,
+      installments: recurrence === "installments" ? installments : undefined,
+      notes: notes ? sanitizeInput(notes) : undefined,
+    });
+
+    if (!validation.success) {
+      alert(validation.error);
+      return;
+    }
+
     saveTransaction({
       id: initial?.id,
       paidMonths: initial?.paidMonths,
       endMonth: recurrence === "monthly" ? initial?.endMonth : undefined,
-      type,
-      description: description.trim(),
-      amount: Math.round(perInstallment * 100) / 100,
-      category,
-      date,
-      recurrence,
-      installments: recurrence === "installments" ? installments : undefined,
-      notes: notes.trim() || undefined,
+      type: validation.data.type,
+      description: validation.data.description,
+      amount: Math.round(validation.data.amount * 100) / 100,
+      category: validation.data.category,
+      date: validation.data.date,
+      recurrence: validation.data.recurrence,
+      installments: validation.data.installments,
+      notes: validation.data.notes,
     });
     onDone();
   }
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-950 p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-950/50 p-1">
         {(["expense", "income"] as TxType[]).map((t) => (
           <button
             type="button"
             key={t}
             onClick={() => changeType(t)}
-            className={`rounded-lg py-2 font-semibold ${type === t ? (t === "expense" ? "bg-red-500 text-white" : "bg-emerald-500 text-slate-950") : "text-slate-400"}`}
+            className={`rounded-md py-2 font-medium transition-colors ${type === t ? (t === "expense" ? "bg-red-600 text-white" : "bg-emerald-600 text-white") : "text-slate-400 hover:text-slate-300"}`}
           >
             {t === "expense" ? "Gasto" : "Receita"}
           </button>
@@ -86,7 +104,7 @@ export default function TransactionForm({ initial, defaultType = "expense", defa
             ["monthly", "Todo mês"],
             ["installments", "Parcelada"],
           ] as [Recurrence, string][]).map(([r, label]) => (
-            <button type="button" key={r} onClick={() => setRecurrence(r)} className={`rounded-xl border py-2 text-sm ${recurrence === r ? "border-emerald-500 bg-emerald-500/10 text-emerald-300" : "border-white/10 text-slate-300"}`}>
+            <button type="button" key={r} onClick={() => setRecurrence(r)} className={`rounded-lg border py-2 text-sm transition-colors ${recurrence === r ? "border-emerald-600 bg-emerald-600/10 text-emerald-400" : "border-slate-700 text-slate-300 hover:border-slate-600"}`}>
               {label}
             </button>
           ))}
@@ -96,7 +114,7 @@ export default function TransactionForm({ initial, defaultType = "expense", defa
       {recurrence === "installments" && (
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nº de parcelas">
-            <input className={inputClass} type="number" min={2} max={120} value={installments} onChange={(e) => setInstallments(Math.max(2, Number(e.target.value) || 2))} />
+            <NumberInput value={installments} onChange={setInstallments} min={2} max={120} />
           </Field>
           <Field label="O valor é">
             <select className={inputClass} value={totalMode ? "total" : "parcela"} onChange={(e) => setTotalMode(e.target.value === "total")}>

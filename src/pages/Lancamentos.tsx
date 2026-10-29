@@ -31,17 +31,17 @@ export default function Lancamentos({ month, setMonth, openTx, newTx }: Props) {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-bold">Lançamentos</h1>
+      <h1 className="mb-4 text-xl font-bold">Lançamentos</h1>
       <MonthPicker month={month} onChange={setMonth} />
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button onClick={() => setType("expense")} className={`rounded-2xl p-3 text-left ${type === "expense" ? "bg-red-500/15 ring-2 ring-red-500/60" : "bg-slate-900"}`}>
+        <button onClick={() => setType("expense")} className={`rounded-xl border p-3 text-left transition-colors ${type === "expense" ? "border-red-600 bg-red-600/10" : "border-slate-800 bg-slate-900/50"}`}>
           <span className="block text-xs text-slate-400">Gastos</span>
-          <span className="font-bold text-red-400">{money(s.expense)}</span>
+          <span className="font-semibold text-red-400">{money(s.expense)}</span>
         </button>
-        <button onClick={() => setType("income")} className={`rounded-2xl p-3 text-left ${type === "income" ? "bg-emerald-500/15 ring-2 ring-emerald-500/60" : "bg-slate-900"}`}>
+        <button onClick={() => setType("income")} className={`rounded-xl border p-3 text-left transition-colors ${type === "income" ? "border-emerald-600 bg-emerald-600/10" : "border-slate-800 bg-slate-900/50"}`}>
           <span className="block text-xs text-slate-400">Receitas</span>
-          <span className="font-bold text-emerald-400">{money(s.income)}</span>
+          <span className="font-semibold text-emerald-400">{money(s.income)}</span>
         </button>
       </div>
 
@@ -51,7 +51,7 @@ export default function Lancamentos({ month, setMonth, openTx, newTx }: Props) {
           ["pending", type === "expense" ? "A pagar" : "A receber"],
           ["paid", type === "expense" ? "Pagos" : "Recebidos"],
         ] as [Filter, string][]).map(([f, label]) => (
-          <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-4 py-1.5 text-sm ${filter === f ? "bg-slate-100 text-slate-900" : "bg-slate-900 text-slate-300"}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-4 py-1.5 text-sm transition-colors ${filter === f ? "bg-slate-200 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"}`}>
             {label}
           </button>
         ))}

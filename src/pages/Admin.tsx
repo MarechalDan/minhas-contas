@@ -96,13 +96,13 @@ export default function Admin() {
       </div>
       {error && <p className="mb-3 rounded-xl bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
 
-      <div className="mb-4 grid grid-cols-3 gap-1 rounded-2xl bg-slate-900 p-1">
+      <div className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-slate-900/50 p-1">
         {([
           ["geral", "Visão geral"],
           ["usuarios", `Usuários (${stats.total})`],
           ["chamados", `Suporte${stats.abertos ? ` (${stats.abertos})` : ""}`],
         ] as [Tab, string][]).map(([t, label]) => (
-          <button key={t} onClick={() => setTab(t)} className={`rounded-xl py-2 text-xs font-semibold ${tab === t ? "bg-emerald-500 text-slate-950" : "text-slate-300"}`}>{label}</button>
+          <button key={t} onClick={() => setTab(t)} className={`rounded-md py-2 text-xs font-medium transition-colors ${tab === t ? "bg-emerald-600 text-white" : "text-slate-400 hover:text-slate-300"}`}>{label}</button>
         ))}
       </div>
 

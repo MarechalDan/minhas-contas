@@ -45,22 +45,64 @@ export default function Resumo({ month, setMonth, openTx, newTx, goSettings }: P
     <div>
       <header className="mb-4">
         <div className="flex items-center justify-between gap-2 text-sm text-slate-400">
-          <span>Olá{firstName ? `, ${firstName}` : ""} 👋</span>
+          <span>Olá{firstName ? `, ${firstName}` : ""}</span>
           <span className="text-xs text-slate-500">{syncLabel[status]}</span>
         </div>
-        <h1 className="text-2xl font-bold">Resumo do mês</h1>
+        <h1 className="text-xl font-bold">Resumo do mês</h1>
       </header>
 
       <MonthPicker month={month} onChange={setMonth} />
 
+      {/* Widget de resumo rápido */}
+      <Card className="mt-4 bg-gradient-to-br from-emerald-600/20 to-slate-900/50 border-emerald-600/30">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-slate-400">Saldo do mês</p>
+            <p className={`text-2xl font-bold ${s.balance < 0 ? "text-red-400" : "text-emerald-400"}`}>{money(s.balance)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-400">{upcoming.length} conta(s) a pagar</p>
+            <p className="text-sm font-semibold text-slate-300">{money(s.pendingExpense)}</p>
+          </div>
+        </div>
+      </Card>
+
       {data.transactions.length === 0 && (
-        <Card className="mt-4 border-emerald-500/30 bg-emerald-500/5">
-          <h2 className="font-bold">Bem-vindo! 🎉</h2>
+        <Card className="mt-4 border-emerald-600/30 bg-emerald-600/5">
+          <h2 className="font-semibold">Bem-vindo!</h2>
           <p className="mt-1 text-sm text-slate-300">Comece cadastrando seu salário e depois suas contas fixas (aluguel, luz, internet...). Dá pra marcar cada conta como paga.</p>
           <div className="mt-3 flex gap-2">
             <Button onClick={goSettings} className="flex-1">Cadastrar salário</Button>
             <Button variant="secondary" onClick={newTx} className="flex-1">Adicionar conta</Button>
           </div>
+        </Card>
+      )}
+
+      {/* Widget de meta mais próxima */}
+      {data.goals.length > 0 && (
+        <Card className="mt-3">
+          <p className="text-xs text-slate-400">Meta mais próxima</p>
+          {(() => {
+            const closest = data.goals
+              .filter((g) => g.deadline && g.saved < g.target)
+              .sort((a, b) => new Date(a.deadline!).getTime() - new Date(b.deadline!).getTime())[0];
+            if (!closest) return null;
+            const pct = Math.round((closest.saved / closest.target) * 100);
+            return (
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{closest.emoji}</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{closest.name}</p>
+                    <p className="text-xs text-slate-400">{pct}% completo</p>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })()}
         </Card>
       )}
 
@@ -108,6 +150,39 @@ export default function Resumo({ month, setMonth, openTx, newTx, goSettings }: P
           ))}
         </ul>
       )}
+
+      {occ.length > 0 && (
+        <>
+          <SectionTitle>Últimas transações</SectionTitle>
+          <ul className="space-y-2">
+            {occ.slice(0, 5).map((o) => (
+              <TransactionItem key={`${o.tx.id}-${o.month}`} o={o} onOpen={() => openTx(o)} onToggle={() => togglePaid(o.tx.id, o.month)} />
+            ))}
+          </ul>
+        </>
+      )}
+
+      <SectionTitle>Acesso rápido</SectionTitle>
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { icon: "🧾", label: "Aluguel", cat: "moradia" },
+          { icon: "⚡", label: "Luz", cat: "contas" },
+          { icon: "🛒", label: "Mercado", cat: "alimentacao" },
+          { icon: "🚗", label: "Transporte", cat: "transporte" },
+        ].map((item) => (
+          <button
+            key={item.cat}
+            onClick={() => {
+              newTx();
+              // Apenas abre o formulário, usuário preenche
+            }}
+            className="flex flex-col items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/50 p-3 hover:border-slate-700 active:bg-slate-800"
+          >
+            <span className="text-2xl">{item.icon}</span>
+            <span className="text-xs text-slate-400">{item.label}</span>
+          </button>
+        ))}
+      </div>
 
       {cats.length > 0 && (
         <>

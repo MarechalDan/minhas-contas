@@ -33,6 +33,7 @@ export interface Settings {
   grossSalary: number;
   dependents: number;
   payday: number;
+  reminderDays?: number;
 }
 
 export interface AppData {
